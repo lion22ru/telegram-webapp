@@ -1,16 +1,54 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Telegram Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  </head>
-  <body>
-    <h1>Привет из мини-приложения!</h1>
-    <button onclick="Telegram.WebApp.sendData('Привет от WebApp!')">
-      Отправить боту
-    </button>
-    <script>
-      Telegram.WebApp.expand();
-    </script>
-  </body>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Дневник настроения</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>История настроения</h2>
+  <canvas id="moodChart" width="400" height="200"></canvas>
+
+  <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      const userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+
+      fetch(`https://your-api-url/stats/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+          const labels = Object.keys(data);
+          const values = Object.values(data);
+          const ctx = document.getElementById('moodChart').getContext('2d');
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Количество записей',
+                data: values,
+                backgroundColor: [
+                  'rgba(75, 192, 192, 0.6)',
+                  'rgba(255, 99, 132, 0.6)',
+                  'rgba(201, 203, 207, 0.6)'
+                ]
+              }]
+            },
+            options: {
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
+        })
+        .catch(err => {
+          console.error('Ошибка загрузки данных:', err);
+          alert('Не удалось загрузить статистику.');
+        });
+    } else {
+      alert("Открыто вне Telegram. userId не доступен.");
+    }
+  </script>
+</body>
 </html>
