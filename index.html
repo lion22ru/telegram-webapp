@@ -1,62 +1,177 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Поддержка</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f0f0f0;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 10px;
-            font-size: 16px;
-            resize: none;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-        }
-        button {
-            margin-top: 15px;
-            width: 100%;
-            padding: 10px;
-            font-size: 18px;
-            background-color: #3390ec;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        h2 {
-            color: #333;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Арканоид в Telegram</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #222;
+      color: #fff;
+      text-align: center;
+      font-family: sans-serif;
+    }
+
+    canvas {
+      background: #111;
+      display: block;
+      margin: 20px auto;
+      border: 2px solid #00bfff;
+      border-radius: 10px;
+    }
+
+    #info {
+      margin-top: 10px;
+    }
+
+    button {
+      background-color: #00bfff;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-    <h2>🛟 Поддержка</h2>
-    <p>Пожалуйста, опишите вашу проблему или вопрос:</p>
-    <textarea id="message" placeholder="Ваше сообщение..."></textarea>
-    <button onclick="sendFeedback()">Отправить</button>
+  <h2>🎮 Арканоид</h2>
+  <canvas id="gameCanvas" width="300" height="400"></canvas>
+  <div id="info">Используйте ← и → для перемещения платформы</div>
+  <button onclick="Telegram.WebApp.close()">❌ Закрыть</button>
 
-    <script>
-        Telegram.WebApp.expand(); // делаем окно больше
+  <script>
+    Telegram.WebApp.expand(); // Разворачивает окно WebApp
 
-        function sendFeedback() {
-            const message = document.getElementById("message").value;
-            if (message.trim() === "") {
-                alert("Введите сообщение!");
-                return;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let ballRadius = 5;
+    let x = canvas.width / 2;
+    let y = canvas.height - 30;
+    let dx = 2;
+    let dy = -2;
+
+    let paddleHeight = 10;
+    let paddleWidth = 75;
+    let paddleX = (canvas.width - paddleWidth) / 2;
+
+    let rightPressed = false;
+    let leftPressed = false;
+
+    let brickRowCount = 3;
+    let brickColumnCount = 5;
+    let brickWidth = 50;
+    let brickHeight = 15;
+    let brickPadding = 10;
+    let brickOffsetTop = 30;
+    let brickOffsetLeft = 10;
+
+    let bricks = [];
+    for (let c = 0; c < brickColumnCount; c++) {
+      bricks[c] = [];
+      for (let r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0, status: 1 };
+      }
+    }
+
+    document.addEventListener("keydown", keyDownHandler);
+    document.addEventListener("keyup", keyUpHandler);
+
+    function keyDownHandler(e) {
+      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
+      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
+    }
+
+    function keyUpHandler(e) {
+      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
+      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
+    }
+
+    function collisionDetection() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          let b = bricks[c][r];
+          if (b.status === 1) {
+            if (
+              x > b.x &&
+              x < b.x + brickWidth &&
+              y > b.y &&
+              y < b.y + brickHeight
+            ) {
+              dy = -dy;
+              b.status = 0;
             }
-
-            // Пример отправки сообщения в Telegram-бота через WebApp
-            // Пока просто закрываем окно
-            alert("Сообщение отправлено!");
-            Telegram.WebApp.close();
+          }
         }
-    </script>
+      }
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#00bfff";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+      ctx.fillStyle = "#00bfff";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawBricks() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          if (bricks[c][r].status === 1) {
+            let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+            let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+            bricks[c][r].x = brickX;
+            bricks[c][r].y = brickY;
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickWidth, brickHeight);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      collisionDetection();
+
+      if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) dx = -dx;
+      if (y + dy < ballRadius) dy = -dy;
+      else if (y + dy > canvas.height - ballRadius) {
+        if (x > paddleX && x < paddleX + paddleWidth) {
+          dy = -dy;
+        } else {
+          document.location.reload(); // restart
+        }
+      }
+
+      if (rightPressed && paddleX < canvas.width - paddleWidth) paddleX += 5;
+      else if (leftPressed && paddleX > 0) paddleX -= 5;
+
+      x += dx;
+      y += dy;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
 </body>
 </html>
