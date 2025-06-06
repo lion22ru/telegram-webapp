@@ -80,18 +80,34 @@
       }
     }
 
-    document.addEventListener("keydown", keyDownHandler);
-    document.addEventListener("keyup", keyUpHandler);
+    // Управление клавишами
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") rightPressed = true;
+      if (e.key === "ArrowLeft") leftPressed = true;
+    });
+    document.addEventListener("keyup", function (e) {
+      if (e.key === "ArrowRight") rightPressed = false;
+      if (e.key === "ArrowLeft") leftPressed = false;
+    });
+    
+    // Управление мышью
+    document.addEventListener("mousemove", function (e) {
+      const relativeX = e.clientX - canvas.getBoundingClientRect().left;
+      if (relativeX > 0 && relativeX < canvas.width) {
+        paddleX = relativeX - paddleWidth / 2;
+      }
+    });
+    
+    // Управление пальцем
+    canvas.addEventListener("touchmove", function (e) {
+      const touch = e.touches[0];
+      const relativeX = touch.clientX - canvas.getBoundingClientRect().left;
+      if (relativeX > 0 && relativeX < canvas.width) {
+        paddleX = relativeX - paddleWidth / 2;
+      }
+      e.preventDefault(); // чтобы не прокручивалась страница
+    }, { passive: false });
 
-    function keyDownHandler(e) {
-      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
-      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
-    }
-
-    function keyUpHandler(e) {
-      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
-      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
-    }
 
     function collisionDetection() {
       for (let c = 0; c < brickColumnCount; c++) {
