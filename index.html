@@ -10,127 +10,132 @@
             font-family: Arial, sans-serif;
             background-color: #111;
             color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            text-align: center;
         }
         canvas {
             border: 2px solid #fff;
-            margin-bottom: 20px;
+            margin-top: 20px;
         }
-        .game-title {
-            margin: 10px 0;
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
         }
-        .game-container {
-            margin-bottom: 40px;
+        button:hover {
+            background-color: #555;
         }
     </style>
 </head>
 <body>
-    <h1>🎮 Мини-игры</h1>
+    <h1>🎮 Выберите игру</h1>
+    <button onclick="showGame('arkanoid')">Арканоид</button>
+    <button onclick="showGame('tanks')">Танчики</button>
 
-    <!-- Арканоид -->
-    <div class="game-container">
-        <h2 class="game-title">Арканоид</h2>
-        <canvas id="arkanoid" width="300" height="200"></canvas>
-    </div>
-
-    <!-- Пинг-понг -->
-    <div class="game-container">
-        <h2 class="game-title">Пинг-Понг</h2>
-        <canvas id="pong" width="300" height="200"></canvas>
-    </div>
+    <canvas id="arkanoid" width="300" height="200" style="display:none;"></canvas>
+    <canvas id="tanks" width="300" height="200" style="display:none;"></canvas>
 
     <script>
+        function showGame(gameId) {
+            document.getElementById('arkanoid').style.display = 'none';
+            document.getElementById('tanks').style.display = 'none';
+            if (gameId === 'arkanoid') initArkanoid();
+            if (gameId === 'tanks') initTanks();
+            document.getElementById(gameId).style.display = 'block';
+        }
+
         // ------------------ Арканоид ------------------
-        const canvasA = document.getElementById("arkanoid");
-        const ctxA = canvasA.getContext("2d");
+        function initArkanoid() {
+            const canvas = document.getElementById("arkanoid");
+            const ctx = canvas.getContext("2d");
 
-        let ballX = 150, ballY = 100, ballDX = 2, ballDY = -2, ballR = 5;
-        let paddleW = 60, paddleH = 10;
-        let paddleX = (canvasA.width - paddleW) / 2;
+            let ballX = 150, ballY = 100, ballDX = 2, ballDY = -2, ballR = 5;
+            let paddleW = 60, paddleH = 10;
+            let paddleX = (canvas.width - paddleW) / 2;
 
-        function drawArkanoid() {
-            ctxA.clearRect(0, 0, canvasA.width, canvasA.height);
-            ctxA.beginPath();
-            ctxA.arc(ballX, ballY, ballR, 0, Math.PI * 2);
-            ctxA.fillStyle = "#00ffcc";
-            ctxA.fill();
-            ctxA.closePath();
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.arc(ballX, ballY, ballR, 0, Math.PI * 2);
+                ctx.fillStyle = "#00ffcc";
+                ctx.fill();
+                ctx.closePath();
 
-            ctxA.beginPath();
-            ctxA.rect(paddleX, canvasA.height - paddleH, paddleW, paddleH);
-            ctxA.fillStyle = "#ff00aa";
-            ctxA.fill();
-            ctxA.closePath();
+                ctx.beginPath();
+                ctx.rect(paddleX, canvas.height - paddleH, paddleW, paddleH);
+                ctx.fillStyle = "#ff00aa";
+                ctx.fill();
+                ctx.closePath();
 
-            if(ballX + ballDX < ballR || ballX + ballDX > canvasA.width - ballR) ballDX = -ballDX;
-            if(ballY + ballDY < ballR) ballDY = -ballDY;
-            else if(ballY + ballDY > canvasA.height - ballR) {
-                if(ballX > paddleX && ballX < paddleX + paddleW) {
-                    ballDY = -ballDY;
-                } else {
-                    ballX = 150; ballY = 100;
+                if(ballX + ballDX < ballR || ballX + ballDX > canvas.width - ballR) ballDX = -ballDX;
+                if(ballY + ballDY < ballR) ballDY = -ballDY;
+                else if(ballY + ballDY > canvas.height - ballR) {
+                    if(ballX > paddleX && ballX < paddleX + paddleW) {
+                        ballDY = -ballDY;
+                    } else {
+                        ballX = 150; ballY = 100;
+                    }
                 }
+
+                ballX += ballDX;
+                ballY += ballDY;
             }
 
-            ballX += ballDX;
-            ballY += ballDY;
+            canvas.ontouchmove = (e) => {
+                const x = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+                paddleX = x - paddleW / 2;
+            };
+
+            canvas.onmousemove = (e) => {
+                const x = e.clientX - canvas.getBoundingClientRect().left;
+                paddleX = x - paddleW / 2;
+            };
+
+            clearInterval(canvas._interval);
+            canvas._interval = setInterval(draw, 20);
         }
-        setInterval(drawArkanoid, 20);
 
-        canvasA.addEventListener("touchmove", (e) => {
-            const touchX = e.touches[0].clientX - canvasA.getBoundingClientRect().left;
-            paddleX = touchX - paddleW / 2;
-        });
+        // ------------------ Танчики ------------------
+        function initTanks() {
+            const canvas = document.getElementById("tanks");
+            const ctx = canvas.getContext("2d");
+            let tank = { x: 140, y: 170, w: 20, h: 20 };
+            let bullets = [];
 
-        canvasA.addEventListener("mousemove", (e) => {
-            const mouseX = e.clientX - canvasA.getBoundingClientRect().left;
-            paddleX = mouseX - paddleW / 2;
-        });
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "green";
+                ctx.fillRect(tank.x, tank.y, tank.w, tank.h);
 
-        // ------------------ Пинг-Понг ------------------
-        const canvasP = document.getElementById("pong");
-        const ctxP = canvasP.getContext("2d");
-
-        let py = canvasP.height / 2 - 25;
-        let by = canvasP.height / 2, bx = canvasP.width / 2;
-        let bdx = 2, bdy = 2;
-
-        function drawPong() {
-            ctxP.clearRect(0, 0, canvasP.width, canvasP.height);
-
-            // игрок
-            ctxP.fillStyle = "#ffcc00";
-            ctxP.fillRect(10, py, 10, 50);
-
-            // мяч
-            ctxP.beginPath();
-            ctxP.arc(bx, by, 5, 0, Math.PI * 2);
-            ctxP.fillStyle = "#00ccff";
-            ctxP.fill();
-
-            // отскоки
-            if (by + bdy < 0 || by + bdy > canvasP.height) bdy = -bdy;
-            if (bx + bdx < 20 && by > py && by < py + 50) bdx = -bdx;
-            if (bx + bdx > canvasP.width || bx + bdx < 0) {
-                bx = canvasP.width / 2; by = canvasP.height / 2;
+                bullets.forEach((b, i) => {
+                    b.y -= 4;
+                    ctx.fillStyle = "red";
+                    ctx.fillRect(b.x, b.y, 4, 10);
+                    if (b.y < 0) bullets.splice(i, 1);
+                });
             }
 
-            bx += bdx; by += bdy;
+            canvas.addEventListener("touchmove", e => {
+                let x = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+                tank.x = x - tank.w / 2;
+            });
+
+            canvas.addEventListener("mousemove", e => {
+                let x = e.clientX - canvas.getBoundingClientRect().left;
+                tank.x = x - tank.w / 2;
+            });
+
+            canvas.addEventListener("click", () => {
+                bullets.push({ x: tank.x + tank.w / 2 - 2, y: tank.y });
+            });
+
+            clearInterval(canvas._interval);
+            canvas._interval = setInterval(draw, 30);
         }
-        setInterval(drawPong, 20);
-
-        canvasP.addEventListener("touchmove", (e) => {
-            const touchY = e.touches[0].clientY - canvasP.getBoundingClientRect().top;
-            py = touchY - 25;
-        });
-
-        canvasP.addEventListener("mousemove", (e) => {
-            const mouseY = e.clientY - canvasP.getBoundingClientRect().top;
-            py = mouseY - 25;
-        });
     </script>
 </body>
 </html>
