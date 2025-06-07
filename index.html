@@ -1,193 +1,136 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Арканоид в Telegram</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #222;
-      color: #fff;
-      text-align: center;
-      font-family: sans-serif;
-    }
-
-    canvas {
-      background: #111;
-      display: block;
-      margin: 20px auto;
-      border: 2px solid #00bfff;
-      border-radius: 10px;
-    }
-
-    #info {
-      margin-top: 10px;
-    }
-
-    button {
-      background-color: #00bfff;
-      color: #fff;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Мини-игры для Telegram</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            border: 2px solid #fff;
+            margin-bottom: 20px;
+        }
+        .game-title {
+            margin: 10px 0;
+        }
+        .game-container {
+            margin-bottom: 40px;
+        }
+    </style>
 </head>
 <body>
-  <h2>🎮 Арканоид</h2>
-  <canvas id="gameCanvas" width="300" height="400"></canvas>
-  <div id="info">Используйте ← и → для перемещения платформы</div>
-  <button onclick="Telegram.WebApp.close()">❌ Закрыть</button>
+    <h1>🎮 Мини-игры</h1>
 
-  <script>
-    Telegram.WebApp.expand(); // Разворачивает окно WebApp
+    <!-- Арканоид -->
+    <div class="game-container">
+        <h2 class="game-title">Арканоид</h2>
+        <canvas id="arkanoid" width="300" height="200"></canvas>
+    </div>
 
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    <!-- Пинг-понг -->
+    <div class="game-container">
+        <h2 class="game-title">Пинг-Понг</h2>
+        <canvas id="pong" width="300" height="200"></canvas>
+    </div>
 
-    let ballRadius = 5;
-    let x = canvas.width / 2;
-    let y = canvas.height - 30;
-    let dx = 2;
-    let dy = -2;
+    <script>
+        // ------------------ Арканоид ------------------
+        const canvasA = document.getElementById("arkanoid");
+        const ctxA = canvasA.getContext("2d");
 
-    let paddleHeight = 10;
-    let paddleWidth = 75;
-    let paddleX = (canvas.width - paddleWidth) / 2;
+        let ballX = 150, ballY = 100, ballDX = 2, ballDY = -2, ballR = 5;
+        let paddleW = 60, paddleH = 10;
+        let paddleX = (canvasA.width - paddleW) / 2;
 
-    let rightPressed = false;
-    let leftPressed = false;
+        function drawArkanoid() {
+            ctxA.clearRect(0, 0, canvasA.width, canvasA.height);
+            ctxA.beginPath();
+            ctxA.arc(ballX, ballY, ballR, 0, Math.PI * 2);
+            ctxA.fillStyle = "#00ffcc";
+            ctxA.fill();
+            ctxA.closePath();
 
-    let brickRowCount = 3;
-    let brickColumnCount = 5;
-    let brickWidth = 50;
-    let brickHeight = 15;
-    let brickPadding = 10;
-    let brickOffsetTop = 30;
-    let brickOffsetLeft = 10;
+            ctxA.beginPath();
+            ctxA.rect(paddleX, canvasA.height - paddleH, paddleW, paddleH);
+            ctxA.fillStyle = "#ff00aa";
+            ctxA.fill();
+            ctxA.closePath();
 
-    let bricks = [];
-    for (let c = 0; c < brickColumnCount; c++) {
-      bricks[c] = [];
-      for (let r = 0; r < brickRowCount; r++) {
-        bricks[c][r] = { x: 0, y: 0, status: 1 };
-      }
-    }
-
-    // Управление клавишами
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowRight") rightPressed = true;
-      if (e.key === "ArrowLeft") leftPressed = true;
-    });
-    document.addEventListener("keyup", function (e) {
-      if (e.key === "ArrowRight") rightPressed = false;
-      if (e.key === "ArrowLeft") leftPressed = false;
-    });
-    
-    // Управление мышью
-    document.addEventListener("mousemove", function (e) {
-      const relativeX = e.clientX - canvas.getBoundingClientRect().left;
-      if (relativeX > 0 && relativeX < canvas.width) {
-        paddleX = relativeX - paddleWidth / 2;
-      }
-    });
-    
-    // Управление пальцем
-    canvas.addEventListener("touchmove", function (e) {
-      const touch = e.touches[0];
-      const relativeX = touch.clientX - canvas.getBoundingClientRect().left;
-      if (relativeX > 0 && relativeX < canvas.width) {
-        paddleX = relativeX - paddleWidth / 2;
-      }
-      e.preventDefault(); // чтобы не прокручивалась страница
-    }, { passive: false });
-
-
-    function collisionDetection() {
-      for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < brickRowCount; r++) {
-          let b = bricks[c][r];
-          if (b.status === 1) {
-            if (
-              x > b.x &&
-              x < b.x + brickWidth &&
-              y > b.y &&
-              y < b.y + brickHeight
-            ) {
-              dy = -dy;
-              b.status = 0;
+            if(ballX + ballDX < ballR || ballX + ballDX > canvasA.width - ballR) ballDX = -ballDX;
+            if(ballY + ballDY < ballR) ballDY = -ballDY;
+            else if(ballY + ballDY > canvasA.height - ballR) {
+                if(ballX > paddleX && ballX < paddleX + paddleW) {
+                    ballDY = -ballDY;
+                } else {
+                    ballX = 150; ballY = 100;
+                }
             }
-          }
+
+            ballX += ballDX;
+            ballY += ballDY;
         }
-      }
-    }
+        setInterval(drawArkanoid, 20);
 
-    function drawBall() {
-      ctx.beginPath();
-      ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "#00bfff";
-      ctx.fill();
-      ctx.closePath();
-    }
+        canvasA.addEventListener("touchmove", (e) => {
+            const touchX = e.touches[0].clientX - canvasA.getBoundingClientRect().left;
+            paddleX = touchX - paddleW / 2;
+        });
 
-    function drawPaddle() {
-      ctx.beginPath();
-      ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
-      ctx.fillStyle = "#00bfff";
-      ctx.fill();
-      ctx.closePath();
-    }
+        canvasA.addEventListener("mousemove", (e) => {
+            const mouseX = e.clientX - canvasA.getBoundingClientRect().left;
+            paddleX = mouseX - paddleW / 2;
+        });
 
-    function drawBricks() {
-      for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < brickRowCount; r++) {
-          if (bricks[c][r].status === 1) {
-            let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
-            let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
-            bricks[c][r].x = brickX;
-            bricks[c][r].y = brickY;
-            ctx.beginPath();
-            ctx.rect(brickX, brickY, brickWidth, brickHeight);
-            ctx.fillStyle = "#fff";
-            ctx.fill();
-            ctx.closePath();
-          }
+        // ------------------ Пинг-Понг ------------------
+        const canvasP = document.getElementById("pong");
+        const ctxP = canvasP.getContext("2d");
+
+        let py = canvasP.height / 2 - 25;
+        let by = canvasP.height / 2, bx = canvasP.width / 2;
+        let bdx = 2, bdy = 2;
+
+        function drawPong() {
+            ctxP.clearRect(0, 0, canvasP.width, canvasP.height);
+
+            // игрок
+            ctxP.fillStyle = "#ffcc00";
+            ctxP.fillRect(10, py, 10, 50);
+
+            // мяч
+            ctxP.beginPath();
+            ctxP.arc(bx, by, 5, 0, Math.PI * 2);
+            ctxP.fillStyle = "#00ccff";
+            ctxP.fill();
+
+            // отскоки
+            if (by + bdy < 0 || by + bdy > canvasP.height) bdy = -bdy;
+            if (bx + bdx < 20 && by > py && by < py + 50) bdx = -bdx;
+            if (bx + bdx > canvasP.width || bx + bdx < 0) {
+                bx = canvasP.width / 2; by = canvasP.height / 2;
+            }
+
+            bx += bdx; by += bdy;
         }
-      }
-    }
+        setInterval(drawPong, 20);
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBricks();
-      drawBall();
-      drawPaddle();
-      collisionDetection();
+        canvasP.addEventListener("touchmove", (e) => {
+            const touchY = e.touches[0].clientY - canvasP.getBoundingClientRect().top;
+            py = touchY - 25;
+        });
 
-      if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) dx = -dx;
-      if (y + dy < ballRadius) dy = -dy;
-      else if (y + dy > canvas.height - ballRadius) {
-        if (x > paddleX && x < paddleX + paddleWidth) {
-          dy = -dy;
-        } else {
-          document.location.reload(); // restart
-        }
-      }
-
-      if (rightPressed && paddleX < canvas.width - paddleWidth) paddleX += 5;
-      else if (leftPressed && paddleX > 0) paddleX -= 5;
-
-      x += dx;
-      y += dy;
-      requestAnimationFrame(draw);
-    }
-
-    draw();
-  </script>
+        canvasP.addEventListener("mousemove", (e) => {
+            const mouseY = e.clientY - canvasP.getBoundingClientRect().top;
+            py = mouseY - 25;
+        });
+    </script>
 </body>
 </html>
