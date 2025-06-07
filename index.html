@@ -4,27 +4,36 @@
     <meta charset="UTF-8">
     <title>Мини-игры для Telegram</title>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            height: 100%;
             background-color: #111;
+            font-family: Arial, sans-serif;
             color: #fff;
-            text-align: center;
+            overflow: hidden;
         }
         canvas {
-            border: 2px solid #fff;
-            margin-top: 20px;
+            display: none;
+            width: 100vw;
+            height: 100vh;
+        }
+        #menu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
         button {
             margin: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
+            padding: 20px 40px;
+            font-size: 20px;
             background-color: #333;
             color: #fff;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
+            cursor: pointer;
         }
         button:hover {
             background-color: #555;
@@ -32,15 +41,18 @@
     </style>
 </head>
 <body>
-    <h1>🎮 Выберите игру</h1>
-    <button onclick="showGame('arkanoid')">Арканоид</button>
-    <button onclick="showGame('tanks')">Танчики</button>
+    <div id="menu">
+        <h1>🎮 Выберите игру</h1>
+        <button onclick="showGame('arkanoid')">Арканоид</button>
+        <button onclick="showGame('tanks')">Танчики</button>
+    </div>
 
-    <canvas id="arkanoid" width="300" height="200" style="display:none;"></canvas>
-    <canvas id="tanks" width="300" height="200" style="display:none;"></canvas>
+    <canvas id="arkanoid"></canvas>
+    <canvas id="tanks"></canvas>
 
     <script>
         function showGame(gameId) {
+            document.getElementById('menu').style.display = 'none';
             document.getElementById('arkanoid').style.display = 'none';
             document.getElementById('tanks').style.display = 'none';
             if (gameId === 'arkanoid') initArkanoid();
@@ -48,36 +60,76 @@
             document.getElementById(gameId).style.display = 'block';
         }
 
-        // ------------------ Арканоид ------------------
+        // -------- Арканоид с кирпичами --------
         function initArkanoid() {
             const canvas = document.getElementById("arkanoid");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             const ctx = canvas.getContext("2d");
 
-            let ballX = 150, ballY = 100, ballDX = 2, ballDY = -2, ballR = 5;
-            let paddleW = 60, paddleH = 10;
+            let ballX = canvas.width / 2;
+            let ballY = canvas.height - 50;
+            let ballDX = 4, ballDY = -4, ballR = 8;
+            let paddleW = 100, paddleH = 10;
             let paddleX = (canvas.width - paddleW) / 2;
+
+            let brickRowCount = 5;
+            let brickColumnCount = 8;
+            let brickWidth = 70;
+            let brickHeight = 20;
+            let brickPadding = 10;
+            let bricks = [];
+
+            for(let c = 0; c < brickColumnCount; c++) {
+                for(let r = 0; r < brickRowCount; r++) {
+                    bricks.push({
+                        x: c * (brickWidth + brickPadding) + 30,
+                        y: r * (brickHeight + brickPadding) + 30,
+                        status: 1
+                    });
+                }
+            }
+
+            function drawBricks() {
+                bricks.forEach(b => {
+                    if (b.status) {
+                        ctx.fillStyle = '#ff6600';
+                        ctx.fillRect(b.x, b.y, brickWidth, brickHeight);
+                    }
+                });
+            }
 
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+
                 ctx.beginPath();
                 ctx.arc(ballX, ballY, ballR, 0, Math.PI * 2);
                 ctx.fillStyle = "#00ffcc";
                 ctx.fill();
                 ctx.closePath();
 
-                ctx.beginPath();
-                ctx.rect(paddleX, canvas.height - paddleH, paddleW, paddleH);
                 ctx.fillStyle = "#ff00aa";
-                ctx.fill();
-                ctx.closePath();
+                ctx.fillRect(paddleX, canvas.height - paddleH - 10, paddleW, paddleH);
 
+                drawBricks();
+
+                // Столкновение с кирпичами
+                bricks.forEach(b => {
+                    if (b.status && ballX > b.x && ballX < b.x + brickWidth && ballY > b.y && ballY < b.y + brickHeight) {
+                        ballDY = -ballDY;
+                        b.status = 0;
+                    }
+                });
+
+                // Стены и платформа
                 if(ballX + ballDX < ballR || ballX + ballDX > canvas.width - ballR) ballDX = -ballDX;
                 if(ballY + ballDY < ballR) ballDY = -ballDY;
-                else if(ballY + ballDY > canvas.height - ballR) {
+                else if(ballY + ballDY > canvas.height - ballR - 10) {
                     if(ballX > paddleX && ballX < paddleX + paddleW) {
                         ballDY = -ballDY;
                     } else {
-                        ballX = 150; ballY = 100;
+                        ballX = canvas.width / 2;
+                        ballY = canvas.height - 50;
                     }
                 }
 
@@ -86,55 +138,75 @@
             }
 
             canvas.ontouchmove = (e) => {
-                const x = e.touches[0].clientX - canvas.getBoundingClientRect().left;
-                paddleX = x - paddleW / 2;
+                paddleX = e.touches[0].clientX - paddleW / 2;
             };
-
             canvas.onmousemove = (e) => {
-                const x = e.clientX - canvas.getBoundingClientRect().left;
-                paddleX = x - paddleW / 2;
+                paddleX = e.clientX - paddleW / 2;
             };
 
             clearInterval(canvas._interval);
             canvas._interval = setInterval(draw, 20);
         }
 
-        // ------------------ Танчики ------------------
+        // -------- Танчики с блоками --------
         function initTanks() {
             const canvas = document.getElementById("tanks");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             const ctx = canvas.getContext("2d");
-            let tank = { x: 140, y: 170, w: 20, h: 20 };
+
+            let tank = { x: canvas.width/2 - 20, y: canvas.height - 40, w: 40, h: 20 };
             let bullets = [];
+            let blocks = [];
+
+            function spawnBlock() {
+                blocks.push({ x: Math.random() * (canvas.width - 40), y: 0, w: 40, h: 20 });
+            }
 
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Танчик
                 ctx.fillStyle = "green";
                 ctx.fillRect(tank.x, tank.y, tank.w, tank.h);
 
+                // Пули
                 bullets.forEach((b, i) => {
-                    b.y -= 4;
+                    b.y -= 8;
                     ctx.fillStyle = "red";
                     ctx.fillRect(b.x, b.y, 4, 10);
                     if (b.y < 0) bullets.splice(i, 1);
                 });
+
+                // Блоки
+                blocks.forEach((bl, bi) => {
+                    bl.y += 2;
+                    ctx.fillStyle = "orange";
+                    ctx.fillRect(bl.x, bl.y, bl.w, bl.h);
+
+                    bullets.forEach((b, bj) => {
+                        if (b.x > bl.x && b.x < bl.x + bl.w && b.y < bl.y + bl.h && b.y > bl.y) {
+                            bullets.splice(bj, 1);
+                            blocks.splice(bi, 1);
+                        }
+                    });
+                });
             }
 
             canvas.addEventListener("touchmove", e => {
-                let x = e.touches[0].clientX - canvas.getBoundingClientRect().left;
-                tank.x = x - tank.w / 2;
+                tank.x = e.touches[0].clientX - tank.w / 2;
             });
-
             canvas.addEventListener("mousemove", e => {
-                let x = e.clientX - canvas.getBoundingClientRect().left;
-                tank.x = x - tank.w / 2;
+                tank.x = e.clientX - tank.w / 2;
             });
-
             canvas.addEventListener("click", () => {
                 bullets.push({ x: tank.x + tank.w / 2 - 2, y: tank.y });
             });
 
             clearInterval(canvas._interval);
             canvas._interval = setInterval(draw, 30);
+            clearInterval(canvas._spawn);
+            canvas._spawn = setInterval(spawnBlock, 1000);
         }
     </script>
 </body>
